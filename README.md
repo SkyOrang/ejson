@@ -14,9 +14,15 @@ For detailed instructions, please refer to the wiki.
 
 **Performance testing**
 
-Test environment: i7-12650H, Windows 11, MSVC Release (/O2), pure memory operation
+Test environment: i7-12650H, Windows 11, MSVC Release (/O2)
 
-Performance indicators: Achieve ultra-fast packet assembly of 5KB messages in 4 µs, and parsing of 4KB messages in only 11 µs; Invented handle cache mechanism, which significantly reduces the time for deep modifications by 232 times (down to 430 ns), and passed full-scale fuzzy testing (with zero crashes).
+Test content: Compare the three core indicators of ejson with nlohmann/json and RapidJSON in a pure memory environment.
+
+Parsing query: Parse a 4KB message and extract deep nodes.
+
+From scratch construction: Dynamically assemble a complex message containing 100 objects.
+
+Memory consumption: The growth of physical memory fragments after extreme high-frequency construction.
 
 EN:
 
