@@ -12,7 +12,7 @@ For detailed instructions, please refer to the wiki.
   
 - Cross-platform (based on C/C++ standard library)
 
-**Performance testing
+**Performance testing**
 
 Test environment: i7-12650H, Windows 11, MSVC Release (/O2), pure memory operation
 
