@@ -73,6 +73,8 @@ namespace ejson
 
 		void InsertNewIPair();
 
+		size_t SeekEnd(char* ptr, char check);
+
 	public:
 		jsonvalue() = default;
 
@@ -93,7 +95,7 @@ namespace ejson
 
 		jsonvalue& operator>>(double& data);
 
-		//Ð´Èë²Ù×÷
+		// 
 		jsonvalue& operator<<(const int& data);
 
 		jsonvalue& operator<<(const char* data);
@@ -110,6 +112,10 @@ namespace ejson
 
 		//·ÃÎÊarray
 		jsonvalue operator[](const int& index);
+
+		jsonvalue SeekIPair(const int& nindex, const int& index);
+
+		jsonvalue SeekPair(const char* index);
 
 		void Flush();
 

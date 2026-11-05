@@ -373,17 +373,163 @@ namespace ejson
 		return _data.second;
 	}
 
+	jsonvalue jsonvalue::SeekIPair(const int& nindex,const int& index)
+	{
+		int tindex = nindex;
+		int i = _data.first;
+		int count = 1;
+		if (_data.second == OBJECT || _data.second == ARRAY)
+		{
+			count = 2;
+		}
+
+		while (1)
+		{
+			if (_file->_size - 1 < i)
+			{
+				return jsonvalue(_file, -1, NUL, ARRAY);
+			}
+
+
+
+			if (_file->_buffer[i] == '[')
+			{
+				count++;
+			}
+			if (_file->_buffer[i] == '{')
+			{
+				count++;
+			}
+			if (_file->_buffer[i] == '}')
+			{
+				count--;
+			}
+			if (_file->_buffer[i] == ']')
+			{
+				count--;
+				if (count == 0)
+				{
+					return jsonvalue(_file, -1, NUL, ARRAY);
+				}
+			}
+
+
+			if (index == tindex)
+			{
+				std::pair<long, vtype> ret = _file->CheckValidData(i, '[');
+				long re = ret.first;
+
+				if (re == -1)
+				{
+					std::cout << "It's found that json's format is not correct ，finding array members ." << std::endl;
+					exit(1);
+				}
+
+				return jsonvalue(_file, re, ret.second, ARRAY);
+			}
+
+			if (count == 1)
+			{
+				if (_file->_buffer[i] == ',')
+				{
+					tindex++;
+				}
+			}
+
+			i++;
+		}
+	}
+
+	jsonvalue jsonvalue::SeekPair(const char*key)
+	{
+		int i = _data.first;
+		int count = 1;
+		while (1)
+		{
+			if (_file->_size - 1 < i)
+			{
+				return jsonvalue(_file, -1, NUL, OBJECT);
+			}
+
+
+
+			if (_file->_buffer[i] == '{')
+			{
+				count++;
+			}
+
+			if (_file->_buffer[i] == '}')
+			{
+				count--;
+				if (count == 0)
+				{
+					return jsonvalue(_file, -1, NUL, OBJECT);
+				}
+			}
+
+
+			if (_file->_buffer[i] == '"')
+			{
+				bool is_match = false;
+				long _key_index = i + 1;
+				size_t length = SeekEnd(&(_file->_buffer[i + 1]), '"') - (i + 1);
+				if (strlen(key) == length)
+				{
+					if (strncmp(&(_file->_buffer[i + 1]), key, length) == 0)
+					{
+						is_match = true;
+					}
+				}
+				i += length + 2;
+				if (is_match == true)
+				{
+					std::pair<long, vtype> ret = _file->CheckValidData(i, '{');
+					long re = ret.first;
+
+					if (re == -1)
+					{
+						std::string tem;
+						this->ToString(tem);
+						std::cout << "It's found that json's format is not correct ，finding " << tem << " ." << std::endl;
+						exit(1);
+					}
+
+					return jsonvalue(_file, re, ret.second, OBJECT);
+
+
+				}
+			}
+			i++;
+		}
+	}
+
 	//array遍历
 	bool jsonvalue::IPairs(int& key, jsonvalue& value, int step_length)
 	{
-		key += step_length;
-		const jsonvalue& tem = (*this)[key];
-		if (tem._data.first== -1)
+		if (key == 0)
 		{
-			return false;
+			key += step_length;
+			const jsonvalue& tem = (*this)[key];
+			if (tem._data.first == -1)
+			{
+				return false;
+			}
+			value = (jsonvalue&)tem;
+			return true;
 		}
-		value = (jsonvalue&)tem;
-		return true;
+		else
+		{
+			const jsonvalue& tem = SeekIPair(key,key+1);
+			key += step_length;
+			if (tem._data.first == -1)
+			{
+				return false;
+			}
+			value = (jsonvalue&)tem;
+			return true;
+		}
+
+		
 
 	}
 
@@ -403,13 +549,13 @@ namespace ejson
 		}
 		else
 		{
-			const jsonvalue& tem = (*this)[key.c_str()];
+			const jsonvalue& tem = SeekPair(key.c_str());
 			long offset = tem._data.first;
 			char* data = (char*)(_file->_buffer.data() + offset);
 			int i = 0;
 			bool is_find = false;
 			int count1 = 1;
-			if (tem._data.second==OBJECT)
+			if (tem._data.second==OBJECT|| tem._data.second == ARRAY)
 			{
 				count1 = 2;
 			}
@@ -417,6 +563,18 @@ namespace ejson
 			int count2 = 0;
 			while (1)
 			{
+				if (_file->_size - 1 < i+offset)
+				{
+					return false;
+				}
+				if (data[i] == '[')
+				{
+					count1++;
+				}
+				if (data[i] == ']')
+				{
+					count1--;
+				}
 				if (data[i] == '{')
 				{
 					count1++;
@@ -550,7 +708,7 @@ namespace ejson
 				std::cout << "Only the array can insert ipairs." << std::endl;
 				exit(1);
 			}
-			_data.second =NUL ;
+			/*_data.second =NUL ;*/
 			InsertNewIPair();
 			break;
 		}
@@ -566,7 +724,7 @@ namespace ejson
 			std::cout << "Only the object can insert pairs." << std::endl;
 			exit(1);
 		}
-		_data.second = NUL;
+		/*_data.second = NUL;*/
 		InsertNewPair(data.k.c_str());
 		_file->_Is_Changed = true;
 		return *this;
@@ -628,24 +786,82 @@ namespace ejson
 	void jsonvalue::InsertNewIPair()
 	{
 		//插入新数字键值对
-		std::string tem;
-		tem += "null";
-		_file->_buffer.insert(_data.first, tem);
-		_file->_size += strlen((tem).c_str());
-		_file->_back += strlen((tem).c_str());
-		
+		auto re = _file->CheckValidData((char*)(_file->_buffer.data() + _data.first) - (char*)_file->_buffer.data(), '[');
+		if (re.first == -1)
+		{
+			std::string tem;
+			tem += "null";
+			_file->_buffer.insert(_data.first, tem);
+			_file->_size += strlen((tem).c_str());
+			_file->_back += strlen((tem).c_str());
+		}
+		else
+		{
+			auto ret = SeekEnd((char*)(_file->_buffer.data() + _data.first), '[');
+			std::string tem;
+			tem += ",null";
+			_file->_buffer.insert(ret, tem);
+			_file->_size += strlen((tem).c_str());
+			_file->_back += strlen((tem).c_str());
+		}
 
 	}
 
-	size_t SeekEnd(char* ptr, char check)
+	size_t jsonvalue::SeekEnd(char* ptr, char check)
 	{
 		int i = 0;
+		int count = 1;
+		int mode = 0;
+		if (check == '{')
+		{
+			mode = 1;
+		}
+		else if (check == '[')
+		{
+			mode = 2;
+		}
+
 		while (1)
 		{
-			if (ptr[i] == check)
+			if (mode == 1)
 			{
-				return i;
+				if (ptr[i] == '{')
+				{
+					count++;
+				}
+				if (ptr[i] == '}')
+				{
+					count--;
+					if (count == 0)
+					{
+						return (ptr-(char*)(_file->_buffer.data()))+i;
+					}
+				}
 			}
+			else if (mode == 2)
+			{
+				if (ptr[i] == '[')
+				{
+					count++;
+				}
+				if (ptr[i] == ']')
+				{
+					count--;
+					if (count == 0)
+					{
+						return (ptr - (char*)(_file->_buffer.data())) + i;
+					}
+				}
+			}
+			else
+			{
+				if (ptr[i] == check)
+				{
+					return (ptr - (char*)(_file->_buffer.data())) + i;
+				}
+			}
+		
+		
 			i++;
 		}
 	}
@@ -653,14 +869,17 @@ namespace ejson
 	//访问object
 	jsonvalue jsonvalue::operator[](const char* key)
 	{
-		int i = 0;
-		int count = 0;
+		int i = _data.first;
+		int count = 1;
 		while(1)
 		{
 			if (_file->_size - 1 < i)
 			{
 				return jsonvalue(_file, -1, NUL, OBJECT);
 			}
+
+
+
 			if (_file->_buffer[i] == '{')
 			{
 				count++;
@@ -675,13 +894,12 @@ namespace ejson
 				}
 			}
 
-
 			
 			if (_file->_buffer[i] == '"')
 			{
 				bool is_match = false;
 				long _key_index = i + 1;
-				size_t length = SeekEnd(&(_file->_buffer[i + 1]),'"');
+				size_t length = SeekEnd(&(_file->_buffer[i + 1]),'"')-(i+1);
 				if (strlen(key) == length)
 				{
 					if (strncmp(&(_file->_buffer[i + 1]), key, length) == 0)
@@ -716,8 +934,7 @@ namespace ejson
 	jsonvalue jsonvalue::operator[](const int& index)
 	{
 		int tindex = 1;
-		bool is_match = false;
-		int i = 0;
+		int i = _data.first;
 		int count = 1;
 		while (1)
 		{
@@ -725,9 +942,20 @@ namespace ejson
 			{
 				return jsonvalue(_file, -1, NUL, ARRAY);
 			}
+
+
+
 			if (_file->_buffer[i] == '[')
 			{
 				count++;
+			}
+			if (_file->_buffer[i] == '{')
+			{
+				count++;
+			}
+			if (_file->_buffer[i] == '}')
+			{
+				count--;
 			}
 			if (_file->_buffer[i] == ']')
 			{
@@ -737,16 +965,9 @@ namespace ejson
 					return jsonvalue(_file, -1, NUL, ARRAY);
 				}
 			}
-
 			
 
-			if (is_match == false && _file->_buffer[i] == '[')
-			{
-				is_match = true;
-				i += 1;
-			}
-
-			if (is_match == true && index == tindex)
+			if (index == tindex)
 			{
 				std::pair<long, vtype> ret = _file->CheckValidData(i,'[');
 				long re = ret.first;
@@ -760,7 +981,7 @@ namespace ejson
 				return jsonvalue(_file, re, ret.second,ARRAY);
 			}
 	
-			if (is_match == true)
+			if (count==1)
 			{
 				if (_file->_buffer[i] == ',')
 				{
@@ -822,7 +1043,7 @@ namespace ejson
 					}
 				
 				}
-				else
+				else if(value==1)
 				{
 					if (_buffer[i] == '{')
 					{
@@ -896,7 +1117,11 @@ namespace ejson
 		:_file(NULL)
 		,_Is_Changed(false)
 	{
-
+		_size = 4;
+		_buffer += "null";
+		_front = 0;
+		_back = 4;
+		_Is_Changed = true;
 	}
 
 	//构造函数，当对应path没有文件自动创建并初始化为null
