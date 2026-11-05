@@ -19,7 +19,7 @@ namespace ejson
 		OBJECT,//对象
 		PAIR,//键值对
 		NUL,//空值
-		DELETE,//删除
+		DEL,//删除
 		EARRAY,//空数组
 		EOBJECT,//空对象
 		NIPAIR//新数字键值对
@@ -39,6 +39,8 @@ namespace ejson
 		double ToFloat();
 
 		void InsertString(const char* data);
+
+		void InsertJString(const char* data);
 
 		void InsertInt(const int& data);
 
@@ -100,6 +102,8 @@ namespace ejson
 
 		jsonvalue& operator<<(const char* data);
 
+		jsonvalue& operator<<(const char** data);
+
 		jsonvalue& operator<<(const double& data);
 
 		//删除,赋空值,插入新的array和object
@@ -144,6 +148,7 @@ namespace ejson
 	};
 
 #define NPAIR(key) (const pair(key))//新键值对
+#define JSTRING(key) ((const char**)(key))//jstring
 
 	class jsonfile
 	{

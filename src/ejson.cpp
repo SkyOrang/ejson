@@ -45,6 +45,16 @@ namespace ejson
 		_file->_back += size+2;
 	}
 
+	void jsonvalue::InsertJString(const char* data)
+	{
+		size_t size = strlen(data);
+		std::string tem;
+		tem += data;
+		_file->_buffer.insert(_data.first, tem.c_str());
+		_file->_size += size ;
+		_file->_back += size ;
+	}
+
 	//用于用户写入操作，插入整int
 	void jsonvalue::InsertInt(const int& data)
 	{
@@ -658,6 +668,21 @@ namespace ejson
 		return *this;
 	}
 
+	//写入操作,将用户jstring数据写入到字符串缓冲区
+	jsonvalue& jsonvalue::operator<<(const char** data)
+	{
+		CheckDelete();
+		InsertJString((const char*)data);
+		auto re=_file->CheckValidData(_data.first);
+		_data.second = re.second;
+		if (re.second == OBJECT || re.second == ARRAY)
+		{
+			_data.first += 1;
+		}
+		_file->_Is_Changed = true;
+		return *this;
+	}
+
 	//写入操作,将用户double数据写入到字符串缓冲区
 	jsonvalue& jsonvalue::operator<<(const double& data)
 	{
@@ -678,7 +703,7 @@ namespace ejson
 			_data.second = NUL;
 			InsertNull();
 			break;
-		case DELETE:
+		case DEL:
 			{
 				if (_outer == ARRAY)
 				{
