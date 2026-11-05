@@ -20,7 +20,7 @@ Performance indicators: Achieve ultra-fast packet assembly of 5KB messages in 4 
 
 EN:
 
-<img width="1427" height="587" alt="image" src="https://github.com/user-attachments/assets/a08a0e6d-b52a-4fae-b1fe-5082047ae5b0" 
+<img width="1427" height="587" alt="image" src="https://github.com/user-attachments/assets/a08a0e6d-b52a-4fae-b1fe-5082047ae5b0" >
 
 CN:
 
